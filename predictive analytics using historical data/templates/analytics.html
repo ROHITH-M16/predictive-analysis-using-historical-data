@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Data Analytics{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Historical Feature Relationships & Analytics</h3>
+        <p class="text-muted small mb-0">Interactive visual charts illustrating relationships between student input variables and final exam marks.</p>
+    </div>
+</div>
+
+<!-- Scatter Plots Grid -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Attendance vs Marks -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-clipboard-user text-primary me-2"></i>Attendance vs. Final Marks
+                </h5>
+                <span class="badge bg-primary-subtle text-primary">Scatter Correlation</span>
+            </div>
+            <div class="chart-container" style="position: relative; height: 320px;">
+                <canvas id="analyticsAttendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Study Hours vs Marks -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-book-open-reader text-warning me-2"></i>Study Hours vs. Final Marks
+                </h5>
+                <span class="badge bg-warning-subtle text-warning">Scatter Correlation</span>
+            </div>
+            <div class="chart-container" style="position: relative; height: 320px;">
+                <canvas id="analyticsStudyHoursChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Previous Marks vs Final Marks -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-graduation-cap text-success me-2"></i>Previous Sem Marks vs. Final Marks
+                </h5>
+                <span class="badge bg-success-subtle text-success">Scatter Correlation</span>
+            </div>
+            <div class="chart-container" style="position: relative; height: 320px;">
+                <canvas id="analyticsPrevMarksChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 4: Performance Distribution -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-chart-pie text-danger me-2"></i>Overall Performance Distribution
+                </h5>
+                <span class="badge bg-danger-subtle text-danger">Distribution</span>
+            </div>
+            <div class="chart-container" style="position: relative; height: 320px;">
+                <canvas id="analyticsCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/analytics-data')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderAttendanceScatter(data.scatter_attendance);
+                renderStudyHoursScatter(data.scatter_study_hours);
+                renderPrevMarksScatter(data.scatter_previous_marks);
+                renderCategoryPie(data.category_distribution);
+            }
+        });
+});
+
+function renderAttendanceScatter(scatterData) {
+    const ctx = document.getElementById('analyticsAttendanceChart');
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Student Record',
+                data: scatterData,
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                borderColor: '#4f46e5',
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const p = ctx.raw;
+                            return `${p.name} (${p.id}): ${p.x}% Attendance => ${p.y} Final Marks`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Attendance Percentage (%)', font: { weight: 'bold' } } },
+                y: { title: { display: true, text: 'Final Exam Marks', font: { weight: 'bold' } } }
+            }
+        }
+    });
+}
+
+function renderStudyHoursScatter(scatterData) {
+    const ctx = document.getElementById('analyticsStudyHoursChart');
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Student Record',
+                data: scatterData,
+                backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                borderColor: '#d97706',
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const p = ctx.raw;
+                            return `${p.name} (${p.id}): ${p.x} Study Hours => ${p.y} Final Marks`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Weekly Study Hours', font: { weight: 'bold' } } },
+                y: { title: { display: true, text: 'Final Exam Marks', font: { weight: 'bold' } } }
+            }
+        }
+    });
+}
+
+function renderPrevMarksScatter(scatterData) {
+    const ctx = document.getElementById('analyticsPrevMarksChart');
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Student Record',
+                data: scatterData,
+                backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                borderColor: '#059669',
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const p = ctx.raw;
+                            return `${p.name} (${p.id}): ${p.x} Prev Sem Marks => ${p.y} Final Marks`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Previous Semester Marks (%)', font: { weight: 'bold' } } },
+                y: { title: { display: true, text: 'Final Exam Marks', font: { weight: 'bold' } } }
+            }
+        }
+    });
+}
+
+function renderCategoryPie(dist) {
+    const ctx = document.getElementById('analyticsCategoryChart');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(dist),
+            datasets: [{
+                label: 'Number of Students',
+                data: Object.values(dist),
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Student Count', font: { weight: 'bold' } } }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

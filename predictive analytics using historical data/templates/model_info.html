@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}ML Model Metrics{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Linear Regression Model Diagnostics</h3>
+        <p class="text-muted small mb-0">Detailed statistical evaluation metrics, feature weights, and mathematical formulation for the predictive engine.</p>
+    </div>
+    <button id="retrainBtn" class="btn btn-primary rounded-3 shadow-sm px-4 mt-3 mt-sm-0">
+        <i class="fa-solid fa-arrows-rotate me-2"></i>Retrain Model Now
+    </button>
+</div>
+
+<!-- Evaluation Metrics Cards Grid -->
+<div class="row g-3 mb-4">
+    <!-- MAE -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <small class="text-muted fw-bold text-uppercase tracking-wider mb-1">Mean Absolute Error (MAE)</small>
+            <h2 class="fw-bold text-dark my-2" id="metricMAE">{{ metrics.mae if metrics else 'N/A' }}</h2>
+            <small class="text-muted" style="font-size: 0.75rem;">Average magnitude of absolute errors in marks</small>
+        </div>
+    </div>
+
+    <!-- MSE -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <small class="text-muted fw-bold text-uppercase tracking-wider mb-1">Mean Squared Error (MSE)</small>
+            <h2 class="fw-bold text-dark my-2" id="metricMSE">{{ metrics.mse if metrics else 'N/A' }}</h2>
+            <small class="text-muted" style="font-size: 0.75rem;">Average squared variance of errors</small>
+        </div>
+    </div>
+
+    <!-- RMSE -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <small class="text-muted fw-bold text-uppercase tracking-wider mb-1">Root Mean Sq Error (RMSE)</small>
+            <h2 class="fw-bold text-dark my-2" id="metricRMSE">{{ metrics.rmse if metrics else 'N/A' }}</h2>
+            <small class="text-muted" style="font-size: 0.75rem;">Standard deviation of residuals</small>
+        </div>
+    </div>
+
+    <!-- R2 Score -->
+    <div class="col-xl-3 col-sm-6">
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <small class="text-muted fw-bold text-uppercase tracking-wider mb-1">Coefficient of Det. (R²)</small>
+            <h2 class="fw-bold text-success my-2" id="metricR2">{{ metrics.r2_score if metrics else 'N/A' }}</h2>
+            <small class="text-muted" style="font-size: 0.75rem;">Proportion of variance explained by model</small>
+        </div>
+    </div>
+</div>
+
+<!-- Mathematical Formula & Feature Weights Row -->
+<div class="row g-4 mb-4">
+    <!-- Mathematical Formulation -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                <i class="fa-solid fa-square-root-variable text-primary me-2"></i>Multiple Linear Regression Equation
+            </h5>
+
+            <p class="text-muted small">
+                The predictive model computes expected <strong>Final Exam Marks (\(\hat{y}\))</strong> as a weighted linear combination of input features:
+            </p>
+
+            <div class="bg-light rounded-3 p-3 text-center my-3 border font-monospace" style="font-size: 0.88rem;">
+                \[\hat{y} = \beta_0 + \sum_{i=1}^{5} \beta_i \cdot x_i\]
+            </div>
+
+            <p class="text-muted small mb-2"><strong>Target Variable:</strong></p>
+            <ul class="small text-muted mb-3">
+                <li>\(\hat{y}\): Predicted Final Exam Marks (bounded 0 - 100)</li>
+            </ul>
+
+            <p class="text-muted small mb-2"><strong>Input Features (\(x_i\)):</strong></p>
+            <ol class="small text-muted mb-3">
+                <li>\(x_1\): Attendance Percentage (%)</li>
+                <li>\(x_2\): Weekly Study Hours</li>
+                <li>\(x_3\): Previous Semester Marks (%)</li>
+                <li>\(x_4\): Assignment Marks (%)</li>
+                <li>\(x_5\): Internal Exam Marks (%)</li>
+            </ol>
+
+            <div class="p-3 bg-primary-subtle text-primary rounded-3 small">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Input features are standardized using <code>StandardScaler</code> before fitting model coefficients.
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Coefficients Bar Chart -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="fa-solid fa-scale-balanced text-indigo me-2"></i>Standardized Feature Coefficients
+                </h5>
+                <span class="badge bg-light text-muted border">Feature Impact</span>
+            </div>
+            
+            <p class="text-muted small mb-3">
+                Relative influence of each student parameter on predicted final marks. Larger positive coefficients indicate higher positive correlation.
+            </p>
+
+            <div style="position: relative; height: 280px;">
+                <canvas id="coefficientsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- MathJax for rendering LaTeX math formulas cleanly -->
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<script>
+let coefChartInstance = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadModelMetrics();
+
+    document.getElementById('retrainBtn')?.addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Retraining...';
+
+        fetch('/api/model/retrain', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrows-rotate me-2"></i>Retrain Model Now';
+
+                if (data.success) {
+                    showNotification('Model retrained successfully on current student dataset!');
+                    updateMetricsUI(data.metrics);
+                } else {
+                    showNotification(data.message, 'danger');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-arrows-rotate me-2"></i>Retrain Model Now';
+                showNotification('Failed to retrain model', 'danger');
+            });
+    });
+});
+
+function loadModelMetrics() {
+    fetch('/api/model/metrics')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.metrics) {
+                updateMetricsUI(data.metrics);
+            }
+        });
+}
+
+function updateMetricsUI(metrics) {
+    document.getElementById('metricMAE').innerText = metrics.mae ?? 'N/A';
+    document.getElementById('metricMSE').innerText = metrics.mse ?? 'N/A';
+    document.getElementById('metricRMSE').innerText = metrics.rmse ?? 'N/A';
+    document.getElementById('metricR2').innerText = metrics.r2_score ?? 'N/A';
+
+    if (metrics.coefficients) {
+        renderCoefficientsChart(metrics.coefficients);
+    }
+}
+
+function renderCoefficientsChart(coefs) {
+    const ctx = document.getElementById('coefficientsChart');
+    if (!ctx) return;
+
+    if (coefChartInstance) {
+        coefChartInstance.destroy();
+    }
+
+    const labels = [
+        'Attendance %',
+        'Study Hours',
+        'Prev Sem Marks',
+        'Assignment Marks',
+        'Internal Marks'
+    ];
+
+    const keys = [
+        'attendance_percentage',
+        'study_hours',
+        'previous_semester_marks',
+        'assignment_marks',
+        'internal_marks'
+    ];
+
+    const dataValues = keys.map(k => coefs[k] || 0);
+
+    coefChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Standardized Coefficient Weight',
+                data: dataValues,
+                backgroundColor: 'rgba(79, 70, 229, 0.85)',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ` Coefficient Weight: ${ctx.raw}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Coefficient Weight (\u03B2)', font: { weight: 'bold' } }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

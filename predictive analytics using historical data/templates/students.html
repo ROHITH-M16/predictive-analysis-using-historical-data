@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Student Records{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Historical Student Dataset</h3>
+        <p class="text-muted small mb-0">Manage student academic records. Adding, updating, or deleting records auto-retrains the model.</p>
+    </div>
+    <div class="mt-3 mt-sm-0 d-flex flex-wrap gap-2">
+        <button class="btn btn-primary rounded-3 shadow-sm px-3" onclick="openAddModal()">
+            <i class="fa-solid fa-user-plus me-2"></i>Add Student Record
+        </button>
+        <button class="btn btn-success rounded-3 shadow-sm px-3" data-bs-toggle="modal" data-bs-target="#uploadCsvModal">
+            <i class="fa-solid fa-file-csv me-2"></i>Upload CSV
+        </button>
+        <a href="{{ url_for('api_download_sample_csv') }}" class="btn btn-outline-secondary rounded-3 px-3" title="Download sample CSV format">
+            <i class="fa-solid fa-download me-1"></i>Sample CSV
+        </a>
+        <button class="btn btn-outline-danger rounded-3 px-3" id="resetSampleDataBtn" title="Reset dataset to default sample">
+            <i class="fa-solid fa-rotate-left me-1"></i>Reset Sample
+        </button>
+    </div>
+</div>
+
+<!-- Search & Table Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+        <div class="input-group" style="max-width: 380px;">
+            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fa-solid fa-search"></i></span>
+            <input type="text" id="searchInput" class="form-control bg-light border-start-0" placeholder="Search by Student ID or Name...">
+        </div>
+        <small class="text-muted fw-semibold" id="recordCount">Loading records...</small>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-custom mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Attendance</th>
+                        <th>Study Hours</th>
+                        <th>Prev Sem Marks</th>
+                        <th>Assignment Marks</th>
+                        <th>Internal Marks</th>
+                        <th>Final Exam Marks</th>
+                        <th>Performance</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                    <!-- Loaded dynamically via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="card-footer bg-white border-top py-3 px-4 d-flex align-items-center justify-content-between">
+        <small class="text-muted">Showing 10 records per page</small>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0" id="pagination">
+                <!-- Pagination links -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Add / Edit Student Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom bg-light px-4 py-3">
+                <h5 class="modal-title fw-bold text-dark" id="studentModalTitle">Add New Student Record</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="studentForm">
+                <div class="modal-body p-4">
+                    <input type="hidden" id="studentDbId">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Student ID <span class="text-muted">(e.g. STU-101)</span></label>
+                            <input type="text" class="form-control" id="m_student_id" placeholder="Auto-generated if empty">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Student Full Name *</label>
+                            <input type="text" class="form-control" id="m_student_name" required placeholder="John Doe">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Attendance Percentage (%) *</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="m_attendance" required placeholder="0 - 100">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Weekly Study Hours *</label>
+                            <input type="number" step="0.5" min="0" max="70" class="form-control" id="m_study_hours" required placeholder="e.g. 15">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Previous Semester Marks (%) *</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="m_prev_marks" required placeholder="0 - 100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Assignment Marks (%) *</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="m_assignment" required placeholder="0 - 100">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Internal Test Marks (%) *</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="m_internal" required placeholder="0 - 100">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small fw-semibold">Final Exam Marks (%) *</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="m_final_marks" required placeholder="0 - 100">
+                            <div class="form-text">Actual target outcome value for historical training.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top px-4 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="fa-solid fa-save me-2"></i>Save & Retrain Model
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload CSV Modal -->
+<div class="modal fade" id="uploadCsvModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom bg-light px-4 py-3">
+                <h5 class="modal-title fw-bold text-dark"><i class="fa-solid fa-file-csv text-success me-2"></i>Upload Historical Dataset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadCsvForm">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        Upload a CSV file containing student records. Required columns:
+                        <code>student_name</code>, <code>attendance_percentage</code>, <code>study_hours</code>, 
+                        <code>previous_semester_marks</code>, <code>assignment_marks</code>, <code>internal_marks</code>, <code>final_exam_marks</code>.
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Choose CSV File</label>
+                        <input type="file" class="form-control" id="csvFileInput" accept=".csv" required>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 mb-0 small">
+                        <i class="fa-solid fa-circle-info me-1"></i> Missing student_id will be auto-generated.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top px-4 py-3">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4" id="uploadCsvSubmitBtn">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i>Upload Dataset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <i class="fa-solid fa-triangle-exclamation text-danger fs-1 mb-3"></i>
+                <h5 class="fw-bold text-dark mb-2">Delete Record?</h5>
+                <p class="text-muted small mb-3">Are you sure you want to delete student <strong id="deleteStudentName"></strong>? This cannot be undone.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger btn-sm px-3" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/students.js') }}"></script>
+{% endblock %}

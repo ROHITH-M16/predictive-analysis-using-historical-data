@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Student Performance{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-4">
+    <h3 class="fw-bold text-dark mb-1">Student Performance Predictor</h3>
+    <p class="text-muted small mb-0">Input student academic parameters to predict final exam marks using the trained Linear Regression model.</p>
+</div>
+
+<div class="row g-4">
+    <!-- Input Parameters Form -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4">
+            <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                <i class="fa-solid fa-sliders text-primary me-2"></i>Academic Input Parameters
+            </h5>
+
+            <form id="predictForm">
+                <!-- Attendance Percentage -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold small text-dark mb-0">Attendance Percentage (%)</label>
+                        <div class="input-group input-group-sm" style="width: 100px;">
+                            <input type="number" step="0.1" min="0" max="100" class="form-control text-end fw-bold" id="p_attendance" value="82.5" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range" min="0" max="100" step="0.5" id="p_attendance_slider" value="82.5">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <!-- Study Hours per Week -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold small text-dark mb-0">Weekly Study Hours (hrs/wk)</label>
+                        <div class="input-group input-group-sm" style="width: 100px;">
+                            <input type="number" step="0.5" min="0" max="60" class="form-control text-end fw-bold" id="p_study_hours" value="18" required>
+                            <span class="input-group-text">hrs</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range" min="0" max="60" step="0.5" id="p_study_hours_slider" value="18">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>0 hrs</span>
+                        <span>30 hrs</span>
+                        <span>60 hrs</span>
+                    </div>
+                </div>
+
+                <!-- Previous Semester Marks -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold small text-dark mb-0">Previous Semester Marks (%)</label>
+                        <div class="input-group input-group-sm" style="width: 100px;">
+                            <input type="number" step="0.1" min="0" max="100" class="form-control text-end fw-bold" id="p_prev_marks" value="76" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range" min="0" max="100" step="0.5" id="p_prev_marks_slider" value="76">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <!-- Assignment Marks -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold small text-dark mb-0">Assignment Marks (%)</label>
+                        <div class="input-group input-group-sm" style="width: 100px;">
+                            <input type="number" step="0.1" min="0" max="100" class="form-control text-end fw-bold" id="p_assignment" value="84" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range" min="0" max="100" step="0.5" id="p_assignment_slider" value="84">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <!-- Internal Test Marks -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label fw-semibold small text-dark mb-0">Internal Exam Marks (%)</label>
+                        <div class="input-group input-group-sm" style="width: 100px;">
+                            <input type="number" step="0.1" min="0" max="100" class="form-control text-end fw-bold" id="p_internal" value="79" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range" min="0" max="100" step="0.5" id="p_internal_slider" value="79">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-3 shadow-sm" id="predictBtn">
+                    <i class="fa-solid fa-chart-pie me-2"></i>Generate Final Exam Prediction
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Prediction Output & Performance Card -->
+    <div class="col-lg-5">
+        <div id="predictionResultCard" class="card border-0 shadow-sm p-4 text-center h-100">
+            <h5 class="fw-bold text-dark mb-4 border-bottom pb-2 text-start">
+                <i class="fa-solid fa-award text-success me-2"></i>Prediction Analysis Result
+            </h5>
+
+            <div class="my-auto py-3">
+                <div class="score-circle mb-3" id="scoreRing">
+                    <span class="score-number" id="resPredictedScore">81.4</span>
+                    <span class="score-max">OUT OF 100</span>
+                </div>
+
+                <div class="mb-3">
+                    <span class="text-muted small d-block mb-1">Performance Category</span>
+                    <span id="resCategoryBadge" class="badge bg-primary px-4 py-2 fs-6 shadow-sm">Good</span>
+                </div>
+
+                <p id="resCategoryDesc" class="text-muted small px-3 mb-4">
+                    Solid understanding of core concepts with consistent academic progress.
+                </p>
+
+                <div class="bg-light rounded-3 p-3 text-start border">
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase tracking-wider">
+                        <i class="fa-solid fa-lightbulb text-warning me-1"></i> Academic Insights & Tips
+                    </h6>
+                    <ul class="list-group list-group-flush small" id="resRecommendationsList">
+                        <li class="list-group-item bg-transparent border-0 px-0 d-flex align-items-start gap-2 text-dark">
+                            <i class="fa-solid fa-circle-check text-success mt-1"></i>
+                            <span>Great attendance record! Maintaining high attendance supports consistent comprehension.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/predict.js') }}"></script>
+{% endblock %}

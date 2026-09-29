@@ -1,0 +1,17 @@
+{
+    "mae": 2.3211,
+    "mse": 8.3333,
+    "rmse": 2.8867,
+    "r2_score": 0.9048,
+    "intercept": 84.3229,
+    "coefficients": {
+        "attendance_percentage": 1.8321,
+        "study_hours": 3.5288,
+        "previous_semester_marks": 3.3429,
+        "assignment_marks": 1.5988,
+        "internal_marks": 1.0411
+    },
+    "training_samples": 96,
+    "test_samples": 24,
+    "total_samples": 120
+}
